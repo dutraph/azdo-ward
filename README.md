@@ -1,4 +1,4 @@
-# azdo-ward
+# azdo-ward 🔭
 
 > A clear web viewer for Azure DevOps audit-log changes · Visualizador web para mudanças no audit log do Azure DevOps · Visor web para los cambios del registro de auditoría de Azure DevOps
 

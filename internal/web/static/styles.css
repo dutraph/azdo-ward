@@ -68,8 +68,7 @@ header.topbar {
   border-bottom: 1px solid var(--border);
 }
 .brand { font-weight: 700; letter-spacing: .3px; display: flex; align-items: center; gap: 8px; }
-.brand .brand-marks { display: inline-flex; align-items: center; gap: 4px; }
-.brand .brand-marks svg { display: block; }
+.brand .brand-emoji { font-size: 19px; line-height: 1; }
 .brand .brand-text { line-height: 1; }
 .brand .ward { color: var(--primary); }
 .brand .ver { color: var(--fg-dim); font-weight: 400; font-size: 12px; margin-left: 2px; }
