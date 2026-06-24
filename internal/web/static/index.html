@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>azdo-ward — Azure DevOps audit viewer</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <script>
+    // Apply the saved/system theme before first paint to avoid a flash.
+    (function () {
+      try {
+        var t = localStorage.getItem("azdo-ward-theme");
+        if (t !== "light" && t !== "dark") {
+          t = (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches) ? "light" : "dark";
+        }
+        document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {
+        document.documentElement.setAttribute("data-theme", "dark");
+      }
+    })();
+  </script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-marks" aria-hidden="true">
+          <!-- binoculars -->
+          <svg class="mark-binoc" viewBox="0 0 64 64" width="22" height="22">
+            <rect x="12" y="24" width="17" height="28" rx="8.5" fill="#2b3440" stroke="#11161d" stroke-width="1.5"/>
+            <rect x="35" y="24" width="17" height="28" rx="8.5" fill="#2b3440" stroke="#11161d" stroke-width="1.5"/>
+            <rect x="14" y="16" width="13" height="12" rx="4.5" fill="#1b212a"/>
+            <rect x="37" y="16" width="13" height="12" rx="4.5" fill="#1b212a"/>
+            <rect x="27" y="26" width="10" height="9" rx="3" fill="#1b212a"/>
+            <circle cx="20.5" cy="45" r="6.5" fill="#0078d4"/>
+            <circle cx="43.5" cy="45" r="6.5" fill="#0078d4"/>
+            <circle cx="18" cy="42.5" r="2.2" fill="#bcd9ff"/>
+            <circle cx="41" cy="42.5" r="2.2" fill="#bcd9ff"/>
+          </svg>
+        </span>
+        <span class="brand-text">azdo<span class="ward">-ward</span></span>
+        <span class="ver" id="version"></span>
+      </div>
+      <div class="org-switcher hidden" id="orgSwitcher">
+        <span class="muted small">org</span>
+        <select id="orgSelect" title="Switch organization"></select>
+        <button class="ghost small" id="removeOrgBtn" title="Remove this organization from the saved list">Remove</button>
+      </div>
+      <div class="org-pill" id="orgPill">not connected</div>
+      <button class="ghost small theme-toggle" id="themeToggle" title="Toggle light/dark theme" aria-label="Toggle theme">🌙</button>
+    </header>
+
+    <!-- Connect screen -->
+    <section id="connectView" class="content hidden">
+      <div class="connect-wrap">
+        <div class="card">
+          <h2>Connect an organization</h2>
+          <p>Point azdo-ward at an Azure DevOps organization to read its audit log.</p>
+          <div id="connectError" class="error hidden"></div>
+          <div class="field">
+            <label for="org">Organization</label>
+            <input type="text" id="org" placeholder="contoso" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="authMode">Authentication</label>
+            <select id="authMode">
+              <option value="pat">Personal Access Token (PAT)</option>
+              <option value="entra">Azure Entra ID (az login)</option>
+            </select>
+          </div>
+          <div class="field" id="patField">
+            <label for="pat">Personal Access Token</label>
+            <input type="password" id="pat" placeholder="••••••••••••" autocomplete="off" />
+            <div class="hint">Needs the <b>Audit Log (Read)</b> scope (vso.auditlog). Stored locally; never sent to the browser after saving.</div>
+          </div>
+          <div class="field hidden" id="entraHint">
+            <div class="hint">No token stored. azdo-ward mints an Entra access token on demand via the Azure CLI — run <b>az login</b> once in your terminal. Use this for organizations that block PAT auth.</div>
+          </div>
+          <div class="row" style="margin-top:4px">
+            <button class="primary" id="connectBtn" style="flex:2">Connect</button>
+            <button class="ghost hidden" id="connectCancel" style="flex:1">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Dashboard -->
+    <div id="dashView" class="main hidden">
+      <aside class="sidebar">
+        <div class="field">
+          <label>Window</label>
+          <div class="row">
+            <input type="datetime-local" id="start" />
+          </div>
+          <div class="row" style="margin-top:6px">
+            <input type="datetime-local" id="end" />
+          </div>
+          <div class="row" style="margin-top:6px">
+            <button class="ghost small" data-range="1">24h</button>
+            <button class="ghost small" data-range="7">7d</button>
+            <button class="ghost small" data-range="30">30d</button>
+            <button class="ghost small" data-range="90">90d</button>
+          </div>
+        </div>
+
+        <button class="primary" id="loadBtn" style="width:100%">Load audit log</button>
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:16px 0" />
+
+        <div class="field">
+          <label for="search">Search</label>
+          <input type="text" id="search" placeholder="text, actor, action…" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label for="fCategory">Category</label>
+          <select id="fCategory"><option value="">All</option></select>
+        </div>
+        <div class="field">
+          <label for="fArea">Area</label>
+          <select id="fArea"><option value="">All</option></select>
+        </div>
+        <div class="field">
+          <label for="fActor">Actor</label>
+          <select id="fActor"><option value="">All</option></select>
+        </div>
+        <div class="field">
+          <label for="groupBy">Group by</label>
+          <select id="groupBy">
+            <option value="none">None (flat timeline)</option>
+            <option value="day">Day</option>
+            <option value="actor">Actor</option>
+            <option value="area">Area</option>
+            <option value="category">Category</option>
+            <option value="action">Action</option>
+          </select>
+        </div>
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:16px 0" />
+        <div class="field">
+          <label>Export (filtered)</label>
+          <div class="row">
+            <button class="ghost small" id="exportCsv">CSV</button>
+            <button class="ghost small" id="exportJson">JSON</button>
+          </div>
+        </div>
+        <div class="field">
+          <button class="ghost small" id="addOrg" style="width:100%">+ Add organization</button>
+        </div>
+      </aside>
+
+      <main class="content">
+        <div id="status" class="muted small" style="margin-bottom:12px"></div>
+        <div id="errorBox" class="error hidden"></div>
+        <div class="stats" id="stats"></div>
+        <div id="timeline"></div>
+      </main>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

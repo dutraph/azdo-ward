@@ -1,25 +1,61 @@
-# If you prefer the allow list template instead of the deny list, see community template:
-# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
-#
-# Binaries for programs and plugins
+# Binaries
+/azdo-ward
+/azdo-ward.exe
+/bin/
+/dist/
+*.test
+*.out
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
 
-# Test binary, built with `go test -c`
-*.test
-
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
-
-# Dependency directories (remove the comment below to include it)
-# vendor/
+# Coverage
+coverage.*
+*.coverprofile
+profile.cov
 
 # Go workspace file
 go.work
 go.work.sum
 
-# env file
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.bak
+*.tmp
+*~
+
+# ---------------------------------------------------------------------
+# Secrets / local credentials — these MUST never be committed.
+# The on-disk config lives in $XDG_CONFIG_HOME/azdo-ward/config.yaml on
+# Linux and ~/Library/Application Support/azdo-ward/config.yaml on macOS,
+# but the patterns below catch the failure mode where someone runs the
+# tool from the repo root with $XDG_CONFIG_HOME unset, or drops a
+# private YAML next to the source for testing.
+# ---------------------------------------------------------------------
 .env
+.env.*
+*.env
+config.yaml
+config.yml
+config.local.*
+azdo-ward.yaml
+azdo-ward.yml
+*.pat
+*.token
+*.secret
+*.secrets
+secrets/
+credentials
+credentials.*
+.azdo-ward/
+.azdo-ward-config*
+.netrc
+
+# Anything obviously labelled "local" by the user
+*.local
+local.*
